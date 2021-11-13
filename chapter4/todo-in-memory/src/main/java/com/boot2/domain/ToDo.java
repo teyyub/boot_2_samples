@@ -13,8 +13,8 @@ public class ToDo {
 
     @NotNull
     private String id;
-    @NotNull
-    @NotBlank
+//    @NotNull
+    @NotBlank(message = "Enter description")
     private String description;
     private LocalDateTime created;
     private LocalDateTime modified;

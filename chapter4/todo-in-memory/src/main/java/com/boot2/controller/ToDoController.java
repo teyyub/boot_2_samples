@@ -9,14 +9,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
+@Validated // bunu arasdirmaq
 public class ToDoController {
 
     private CommonRepository<ToDo> repository;
@@ -48,16 +54,32 @@ public class ToDoController {
         return ResponseEntity.ok().header("Location",location.toString()).build();
     }
 
+//   @RequestMapping(value="/todos", method = {RequestMethod.POST, RequestMethod.PUT})
+//   public ResponseEntity<?> createToDo(@Valid @RequestBody ToDo toDo, Errors errors){
+//        if (errors.hasErrors()) {
+//            return ResponseEntity.badRequest().body(ToDoValidationErrorBuilder.fromBindingErrors(errors));
+//        }
+//
+//        ToDo result = repository.save(toDo);
+//        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+//                .buildAndExpand(result.getId()).toUri();
+//        //result da header de location da gosterir
+////        return ResponseEntity.created(location).build();
+//        return ResponseEntity.ok(result);
+//    }
+
     @RequestMapping(value="/todos", method = {RequestMethod.POST, RequestMethod.PUT})
-    public ResponseEntity<?> createToDo(@Valid @RequestBody ToDo toDo, Errors errors){
-        if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(ToDoValidationErrorBuilder.fromBindingErrors(errors));
-        }
+    public ResponseEntity<?> createToDo(@Valid @RequestBody ToDo toDo ){
+//        if (errors.hasErrors()) {
+//            return ResponseEntity.badRequest().body(ToDoValidationErrorBuilder.fromBindingErrors(errors));
+//        }
 
         ToDo result = repository.save(toDo);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
                 .buildAndExpand(result.getId()).toUri();
-        return ResponseEntity.created(location).build();
+        //result da header de location da gosterir
+//        return ResponseEntity.created(location).build();
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/todos/{id}")
@@ -72,10 +94,27 @@ public class ToDoController {
         return ResponseEntity.noContent().build();
     }
 
-    @ExceptionHandler
-    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
-    public ToDoValidationError handleException(Exception exception) {
-        return new ToDoValidationError(exception.getMessage());
+//    @ExceptionHandler
+//    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+//    public ToDoValidationError handleException(Exception exception) {
+//        return new ToDoValidationError(exception.getMessage());
+//    }
+
+    @ExceptionHandler(Exception.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 
+// TODO: 11/13/21
+  //https://www.bezkoder.com/spring-boot-controlleradvice-exceptionhandler/
+  //bunlar arasinda ferqler
+
+//    https://www.baeldung.com/spring-boot-bean-validation
+//   object invalid olanda MethodArgumentNotValidException bunu tutmaq lazimdir
 }
