@@ -1,20 +1,17 @@
-package com.boot2.repository;
+package com.apress.todo.repository;
 
 import com.apress.todo.entity.ToDo;
+import com.apress.todo.model.ToDoDto;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Repository
-public class ToDoRepository implements CommonRepository<ToDo> {
+public class ToDoRepository implements CommonRepository<ToDoDto> {
     private static final String SQL_INSERT = "insert into todo (id, description, created, modified, completed) values (:id,:description,:created,:modified,:completed)";
     private static final String SQL_QUERY_FIND_ALL = "select id, description, created, modified, completed from todo";
     private static final String SQL_QUERY_FIND_BY_ID = SQL_QUERY_FIND_ALL + " where id = :id";
@@ -26,42 +23,42 @@ public class ToDoRepository implements CommonRepository<ToDo> {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    private RowMapper<ToDo> toDoRowMapper = (ResultSet rs, int rowNum) -> {
-        ToDo toDo = new ToDo();
-        toDo.setId(rs.getLong("id"));
-        toDo.setDescription(rs.getString("description"));
-        toDo.setModified(rs.getTimestamp("modified").toLocalDateTime());
-        toDo.setCreated(rs.getTimestamp("created").toLocalDateTime());
-        toDo.setCompleted(rs.getBoolean("completed"));
-        return toDo;
+    private RowMapper<Optional<ToDoDto>> toDoRowMapper = (ResultSet rs, int rowNum) -> {
+        ToDoDto toDoDto = new ToDoDto();
+        toDoDto.setId(rs.getString("id"));
+        toDoDto.setDescription(rs.getString("description"));
+//        toDoDto.setModified(rs.getTimestamp("modified").toLocalDateTime());
+//        toDoDto.setCreated(rs.getTimestamp("created").toLocalDateTime());
+//        toDoDto.setCompleted(rs.getBoolean("completed"));
+        return Optional.of(toDoDto);
     };
 
     @Override
-    public ToDo save(ToDo domain) {
-        ToDo result = findById(domain.getId());
+    public Optional<ToDoDto> save(ToDoDto domain) {
+        ToDoDto result = findById(Long.valueOf(domain.getId())).get();
         if(result != null){
             result.setDescription(domain.getDescription());
-            result.setCompleted(domain.isCompleted());
-            result.setModified(LocalDateTime.now());
+//            result.setCompleted(domain.isCompleted());
+//            result.setModified(LocalDateTime.now());
             return upsert(result, SQL_UPDATE);
         }
         return upsert(domain,SQL_INSERT);
     }
 
     @Override
-    public Iterable<ToDo> save(Collection<ToDo> domains) {
+    public Iterable<Optional<ToDoDto>> save(Collection<ToDoDto> domains) {
         domains.forEach( this::save);
         return findAll();
     }
 
     @Override
-    public void delete(final ToDo domain) {
-        Map<String, Long> namedParameters = Collections.singletonMap("id", domain.getId());
+    public void delete(final ToDoDto domain) {
+        Map<String, Long> namedParameters = Collections.singletonMap("id", Long.valueOf(domain.getId()));
         this.jdbcTemplate.update(SQL_DELETE,namedParameters);
     }
 
     @Override
-    public ToDo findById(Long id) {
+    public Optional<ToDoDto> findById(Long id) {
         try {
             Map<String, Long> namedParameters = Collections.singletonMap("id", id);
             return this.jdbcTemplate.queryForObject(SQL_QUERY_FIND_BY_ID,
@@ -72,20 +69,37 @@ public class ToDoRepository implements CommonRepository<ToDo> {
     }
 
     @Override
-    public Iterable<ToDo> findAll() {
+    public Iterable<Optional<ToDoDto>> findAll() {
         return this.jdbcTemplate.query(SQL_QUERY_FIND_ALL, toDoRowMapper);
     }
 
-    private ToDo upsert(final ToDo toDo, final String sql){
+    private Optional<ToDoDto> upsert(final ToDoDto toDo, final String sql){
         Map<String, Object> namedParameters = new HashMap<>();
         namedParameters.put("id",toDo.getId());
         namedParameters.put("description",toDo.getDescription());
-        namedParameters.put("created",java.sql.Timestamp.valueOf(toDo.
-                getCreated()));
-        namedParameters.put("modified",java.sql.Timestamp.valueOf(toDo.
-                getModified()));
-        namedParameters.put("completed",toDo.isCompleted());
+//        namedParameters.put("created",java.sql.Timestamp.valueOf(toDo.
+//                getCreated()));
+//        namedParameters.put("modified",java.sql.Timestamp.valueOf(toDo.
+//                getModified()));
+//        namedParameters.put("completed",toDo.isCompleted());
         this.jdbcTemplate.update(sql,namedParameters);
-        return findById(toDo.getId());
+        return findById(Long.valueOf(toDo.getId()));
+    }
+
+    private ToDo dtoConvert(ToDoDto dto){
+        return dtoConvert(dto , new ToDo());
+    }
+    private ToDo dtoConvert(ToDoDto dto , ToDo entity){
+        entity.setDescription(dto.getDescription());
+        return entity;
+    }
+
+    private ToDoDto entityConvert(ToDo entity){
+        return entityConvert(entity, new ToDoDto());
+    }
+    private ToDoDto entityConvert(ToDo entity, ToDoDto dto){
+        dto.setId(entity.getId().toString());
+        dto.setDescription(entity.getDescription());
+        return dto;
     }
 }

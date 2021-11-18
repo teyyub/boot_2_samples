@@ -1,18 +1,14 @@
 package com.apress.todo.controller;
 
-import com.apress.todo.model.ToDoBuilder;
 import com.apress.todo.model.ToDoDto;
 import com.apress.todo.service.ToDoService;
-import com.apress.todo.validation.ToDoValidationError;
 import com.apress.todo.validation.ToDoValidationErrorBuilder;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.validation.Valid;
 import java.net.URI;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/todos")
@@ -22,12 +18,10 @@ public class ToDoController {
     public ToDoController(ToDoService service) {
         this.service = service;
     }
-
-//    @GetMapping("")
-//    public ResponseEntity<?> getToDos(){
-//
-//        return ResponseEntity.ok(toDoRepository.findAll());
-//    }
+    @GetMapping("")
+    public ResponseEntity<?> getToDos(){
+        return ResponseEntity.ok(service.findAll());
+    }
 //    @GetMapping("/{id}")
 //    public ResponseEntity<?> getToDoById(@PathVariable Long id){
 //        Optional<ToDoDto> toDo = toDoRepository.findById(id);
@@ -49,8 +43,7 @@ public class ToDoController {
 ////                build();
 //        return null;
 //    }
-    @RequestMapping(value="", method = {RequestMethod.
-            POST,RequestMethod.PUT})
+    @RequestMapping(value="", method = {RequestMethod.POST})
     public ResponseEntity<?> createToDo(@Valid @RequestBody ToDoDto toDo,
                                         Errors errors){
         if (errors.hasErrors()) {
@@ -63,6 +56,28 @@ public class ToDoController {
                 .buildAndExpand(result.getId()).toUri();
         return ResponseEntity.created(location).build();
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@Valid @RequestBody ToDoDto toDo,
+                                    @PathVariable Long id,
+                                        Errors errors){
+        if (errors.hasErrors()) {
+            return ResponseEntity.badRequest().
+                    body(ToDoValidationErrorBuilder.fromBindingErrors(errors));
+        }
+        ToDoDto result = service.update(toDo,id).get();
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest().
+                path("/{id}")
+                .buildAndExpand(result.getId()).toUri();
+        return ResponseEntity.ok(location);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteToDo(@PathVariable Long id){
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
 //    @DeleteMapping("/{id}")
 //    public ResponseEntity<?> deleteToDo(@PathVariable String id){
 //        toDoRepository.delete(ToDoBuilder.create().withId(id).build());

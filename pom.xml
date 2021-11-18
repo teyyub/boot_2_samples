@@ -19,9 +19,13 @@
         <maven.test.skip>true</maven.test.skip>
 	</properties>
     <modules>
+		<module>boot_testing</module>
         <module>chapter5</module>
+<!--		<module>chapter5.1</module>-->
+		<module>chapter5.1.2</module>
 		<module>chapter4/todo-in-memory</module>
 		<module>chapter4.1/todo-no-validation</module>
+		<module>chapter7</module>
     </modules>
 
 
